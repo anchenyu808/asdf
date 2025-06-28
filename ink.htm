@@ -1,28 +1,43 @@
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+  <meta charset="UTF-8">
   <meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" name="viewport">
   <meta content="yes" name="apple-mobile-web-app-capable">
   <meta content="yes" name="apple-touch-fullscreen">
   <meta content="black" name="apple-mobile-web-app-status-bar-style">
   <meta content="320" name="MobileOptimized">
-  <title>页面加载中...</title>
+  <title>页面加载中 - 优化版</title>
   <style>
-    .container {
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #f5f7fa;
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .loading-container {
       width: 100px;
       height: 100px;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 10;
-      animation: rotate-move 2s ease-in-out infinite;
+      z-index: 100;
     }
     
     .dot {
       width: 15px;
       height: 15px;
       border-radius: 50%;
-      background-color: #000;
       position: absolute;
       top: 0;
       bottom: 0;
@@ -70,104 +85,300 @@
       100% { transform: translateY(0px) scale(1) }
     }
     
+    .loading-container {
+      animation: rotate-move 2s ease-in-out infinite;
+    }
+    
     @keyframes rotate-move {
       55% { transform: translate(-50%, -50%) rotate(0deg) }
       80% { transform: translate(-50%, -50%) rotate(360deg) }
       100% { transform: translate(-50%, -50%) rotate(360deg) }
     }
     
-    .content {
+    .content-frame {
       height: 100%;
       width: 100%;
       position: fixed;
       left: 0;
       top: 0;
       border: none;
-      z-index: 1;
+      z-index: 10;
+      display: none; /* 初始隐藏 */
     }
     
-    .error-message {
+    .error-container {
       display: none;
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 90%;
+      width: 400px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
       text-align: center;
-      z-index: 100;
-      max-width: 80%;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      z-index: 200;
+    }
+    
+    .error-icon {
+      font-size: 60px;
+      color: #f74d75;
+      margin-bottom: 20px;
+    }
+    
+    .error-title {
+      font-size: 22px;
+      color: #333;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .error-message {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+    
+    .error-url {
+      font-size: 14px;
+      color: #999;
+      word-break: break-all;
+      margin: 15px 0;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 6px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+    
+    .btn-primary {
+      background: #10beae;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #f0f2f5;
+      color: #555;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    .status-info {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-size: 14px;
+      z-index: 300;
+      display: none;
+    }
+    
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: #e0e0e0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 150;
+      display: none;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: #10beae;
+      width: 0%;
+      transition: width 0.3s ease;
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="progress-container" id="progressBar">
+    <div class="progress-bar" id="progress"></div>
+  </div>
+  
+  <div class="loading-container" id="loader">
     <div class="dot dot-1"></div>
     <div class="dot dot-2"></div>
     <div class="dot dot-3"></div>
   </div>
   
-  <div class="error-message" id="errorMsg"></div>
+  <iframe class="content-frame" id="contentFrame"></iframe>
+  
+  <div class="error-container" id="errorContainer">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title" id="errorTitle">页面加载失败</div>
+    <div class="error-message" id="errorMessage">请检查URL是否正确且目标服务器可访问</div>
+    <div class="error-url" id="errorUrl"></div>
+    <div class="action-buttons">
+      <button class="btn btn-primary" id="retryBtn">重新加载</button>
+      <button class="btn btn-secondary" id="closeBtn">关闭页面</button>
+    </div>
+  </div>
+  
+  <div class="status-info" id="statusInfo"></div>
 
   <script>
+    // 页面加载完成后执行
     document.addEventListener('DOMContentLoaded', function() {
-      var urlParams = new URLSearchParams(window.location.search);
-      var encodedParam = urlParams.get('c');
+      const loader = document.getElementById('loader');
+      const contentFrame = document.getElementById('contentFrame');
+      const errorContainer = document.getElementById('errorContainer');
+      const errorTitle = document.getElementById('errorTitle');
+      const errorMessage = document.getElementById('errorMessage');
+      const errorUrl = document.getElementById('errorUrl');
+      const retryBtn = document.getElementById('retryBtn');
+      const closeBtn = document.getElementById('closeBtn');
+      const statusInfo = document.getElementById('statusInfo');
+      const progressBar = document.getElementById('progressBar');
+      const progress = document.getElementById('progress');
       
-      if (!encodedParam) {
-        showError("缺少URL参数：c");
-        return;
+      // 显示状态信息
+      function showStatus(text) {
+        statusInfo.textContent = text;
+        statusInfo.style.display = 'block';
+        setTimeout(() => {
+          statusInfo.style.display = 'none';
+        }, 3000);
       }
       
-      try {
-        var trueurl = atob(encodedParam);
+      // 显示错误
+      function showError(title, message, url) {
+        loader.style.display = 'none';
+        contentFrame.style.display = 'none';
+        errorTitle.textContent = title;
+        errorMessage.textContent = message;
+        errorUrl.textContent = url;
+        errorContainer.style.display = 'block';
+        showStatus(title);
+      }
+      
+      // 更新进度条
+      function updateProgress(percent) {
+        progressBar.style.display = 'block';
+        progress.style.width = percent + '%';
+      }
+      
+      // 加载目标内容
+      function loadTargetContent() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedParam = urlParams.get('c');
         
-        if (!trueurl.startsWith('http')) {
-          showError("URL格式无效：" + trueurl);
+        // 检查参数是否存在
+        if (!encodedParam) {
+          showError('参数错误', '缺少URL参数：c', '');
           return;
         }
         
-        if (trueurl.startsWith('http://')) {
-          trueurl = trueurl.replace('http://', 'https://');
-        }
-        
-        console.log("加载URL:", trueurl);
-        
-        var iframe = document.createElement('iframe');
-        iframe.className = 'content';
-        iframe.src = trueurl;
-        
-        iframe.onload = function() {
-          document.querySelector('.container').style.display = 'none';
-        };
-        
-        iframe.onerror = function() {
-          showError("页面加载失败，请检查URL：" + trueurl);
-        };
-        
-        document.body.appendChild(iframe);
-        
-        setTimeout(function() {
-          if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
-            document.querySelector('.container').style.display = 'none';
+        let targetUrl;
+        try {
+          // 解码Base64参数
+          targetUrl = atob(encodedParam);
+          
+          // 检查URL是否有效
+          if (!targetUrl.startsWith('http')) {
+            showError('URL格式错误', `URL必须以http/https开头: ${targetUrl}`, targetUrl);
+            return;
           }
-        }, 3000);
-        
-      } catch (error) {
-        showError("参数解析错误：" + error.message);
+          
+          // 强制使用HTTPS
+          if (targetUrl.startsWith('http://')) {
+            targetUrl = targetUrl.replace('http://', 'https://');
+          }
+          
+          console.log("加载URL:", targetUrl);
+          errorUrl.textContent = targetUrl;
+          
+          // 重置UI状态
+          loader.style.display = 'block';
+          errorContainer.style.display = 'none';
+          contentFrame.style.display = 'none';
+          progressBar.style.display = 'block';
+          updateProgress(10);
+          
+          // 模拟进度条
+          const progressInterval = setInterval(() => {
+            const current = parseInt(progress.style.width) || 0;
+            if (current < 90) {
+              updateProgress(current + 5);
+            }
+          }, 300);
+          
+          // 创建iframe
+          contentFrame.src = targetUrl;
+          
+          // 显示内容框架
+          contentFrame.style.display = 'block';
+          
+          // 加载完成后隐藏加载动画
+          contentFrame.onload = function() {
+            clearInterval(progressInterval);
+            updateProgress(100);
+            loader.style.display = 'none';
+            setTimeout(() => {
+              progressBar.style.display = 'none';
+            }, 500);
+            showStatus('页面加载完成');
+          };
+          
+          // 加载失败处理
+          contentFrame.onerror = function() {
+            clearInterval(progressInterval);
+            showError('加载失败', '无法加载目标页面，请检查URL和网络连接', targetUrl);
+            progressBar.style.display = 'none';
+          };
+          
+          // 设置超时检测
+          setTimeout(function() {
+            if (loader.style.display !== 'none') {
+              clearInterval(progressInterval);
+              showError('加载超时', '页面加载时间过长，请检查网络连接或目标服务器状态', targetUrl);
+              progressBar.style.display = 'none';
+            }
+          }, 10000);
+          
+        } catch (error) {
+          showError('参数错误', `参数解析失败: ${error.message}`, '');
+        }
       }
+      
+      // 重试按钮事件
+      retryBtn.addEventListener('click', function() {
+        errorContainer.style.display = 'none';
+        loadTargetContent();
+      });
+      
+      // 关闭按钮事件
+      closeBtn.addEventListener('click', function() {
+        window.close();
+      });
+      
+      // 初始加载
+      loadTargetContent();
     });
-    
-    function showError(message) {
-      console.error(message);
-      var errorDiv = document.getElementById('errorMsg');
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-      document.querySelector('.container').style.display = 'none';
-    }
   </script>
 </body>
 </html>
